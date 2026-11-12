@@ -5,7 +5,7 @@
 import unittest
 from dataclasses import FrozenInstanceError
 
-from agent_state.types import (
+from goalkeep.types import (
     Event, Intent, IntentKind, IntentStatus, WorkingState,
 )
 

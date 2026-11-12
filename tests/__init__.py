@@ -1,1 +1,1 @@
-"""AgentState 精简版测试包。"""
+"""GoalKeep 测试包。"""

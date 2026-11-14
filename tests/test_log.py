@@ -1,4 +1,4 @@
-"""地基②的验收：账本只追加、统一发号、乐观锁、持久化。
+"""地基②的验收：事件日志只追加、统一发号、乐观锁、持久化。
 
 跑法：python3 -m unittest tests.test_log -v
 """
@@ -37,7 +37,7 @@ class LogCase(unittest.TestCase):
         # 现在 head=1，却声称以为是 0 ⇒ 拒绝
         with self.assertRaises(StaleSeqError):
             self.log.append("user", "IntentSet", {"goal": "B"}, expected_seq=0)
-        # 拒绝不留半笔：head 仍是 1，链里仍只有 1 笔
+        # 拒绝不留半条：head 仍是 1，链里仍只有 1 条
         self.assertEqual(self.log.head_seq(), 1)
         self.assertEqual(len(self.log.chain()), 1)
 

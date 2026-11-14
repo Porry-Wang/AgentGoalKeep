@@ -1,7 +1,7 @@
-"""地基②：账本（线性事件日志）。
+"""地基②：事件日志（线性、只追加）。
 
 把第 1 节的 Event 真正存起来：只追加、统一发号、单写者、乐观锁。
-一个 SQLite 文件就是一个账本 —— 天生持久化（崩溃还在）+ 单写者事务。
+一个 SQLite 文件就是一个事件日志 —— 天生持久化（崩溃还在）+ 单写者事务。
 对应《设计说明》第 2 节。
 """
 from __future__ import annotations
@@ -14,20 +14,20 @@ from .types import Event
 
 
 class StaleSeqError(Exception):
-    """乐观锁失败：调用方以为的号(expected)和账本实际号(actual)对不上。
+    """乐观锁失败：调用方以为的号(expected)和事件日志实际号(actual)对不上。
 
-    这意味着别人抢先写了。拒绝这笔，让调用方拿最新账本重试——
+    这意味着别人抢先写了。拒绝这条，让调用方拿最新事件日志重试——
     而不是悄悄盖掉先写者（那就是 F4 丢失更新）。
     """
     def __init__(self, expected: int, actual: int):
         self.expected = expected
         self.actual = actual
         super().__init__(
-            "账本已到第 %d 号，而你以为是第 %d 号；请取最新状态重试" % (actual, expected))
+            "事件日志已到第 %d 号，而你以为是第 %d 号；请取最新状态重试" % (actual, expected))
 
 
 class EventLog:
-    """一个只追加的账本。只提供"追加"和"读"，没有"改/删"。"""
+    """一个只追加的事件日志。只提供"追加"和"读"，没有"改/删"。"""
 
     def __init__(self, path: str):
         self.path = path
@@ -41,16 +41,16 @@ class EventLog:
         )
 
     def head_seq(self) -> int:
-        """当前最大号；空账本为 0。"""
+        """当前最大号；空日志为 0。"""
         row = self._conn.execute("SELECT MAX(seq) FROM events").fetchone()
         return int(row[0]) if row[0] is not None else 0
 
     def append(self, actor: str, type: str, payload: Dict[str, Any],
                expected_seq: int) -> Event:
-        """追加一笔流水：核对乐观锁 → 发号 → 落盘。
+        """追加一条事件：核对乐观锁 → 发号 → 落盘。
 
-        expected_seq：调用方"以为账本现在到第几号"。对不上就拒绝（StaleSeqError）。
-        号由账本统一发（当前最大 +1），调用方不能自己报号。
+        expected_seq：调用方"以为事件日志现在到第几号"。对不上就拒绝（StaleSeqError）。
+        号由事件日志统一发（当前最大 +1），调用方不能自己报号。
         """
         self._conn.execute("BEGIN IMMEDIATE")  # 单写者锁：同一时刻只我一个能写
         try:
@@ -70,7 +70,7 @@ class EventLog:
         return Event(seq=new_seq, actor=actor, type=type, payload=dict(payload))
 
     def chain(self) -> List[Event]:
-        """按 seq 顺序读回全部流水（下一小步折叠成状态时就喂这个）。"""
+        """按 seq 顺序读回全部事件（下一小步算当前状态时就喂这个）。"""
         rows = self._conn.execute(
             "SELECT seq, actor, type, payload FROM events ORDER BY seq"
         ).fetchall()

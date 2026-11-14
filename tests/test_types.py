@@ -12,7 +12,7 @@ from goalkeep.types import (
 
 class EventShape(unittest.TestCase):
     def test_event_is_immutable(self):
-        """账本流水写进就不许改——这是账本可信的前提。"""
+        """事件写进就不许改——这是事件日志可信的前提。"""
         e = Event(seq=1, actor="user", type="IntentSet", payload={"goal": "A"})
         with self.assertRaises(FrozenInstanceError):
             e.seq = 2  # type: ignore[misc]

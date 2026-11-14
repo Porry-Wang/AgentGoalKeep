@@ -2,10 +2,10 @@
 
 只定义"形状"，不含任何业务逻辑（逻辑后面放在 log / reducer）。
 三样东西：
-  Event        —— 账本里的一笔流水，写进就不许改。
+  Event        —— 事件日志里的一条事件，写进就不许改。
   Intent       —— 一个意图：id + 目标 + 层级 + 状态。
   WorkingState —— 当前状态：一袋意图 + 每层一个活跃指针。
-                  它由账本叠出来，不单独存盘（状态/历史分离）。
+                  它由事件日志算出来，不单独存盘（状态/历史分离）。
 对应《设计说明》第 1 节。
 """
 from __future__ import annotations
@@ -31,9 +31,9 @@ class IntentKind(str, Enum):
 
 @dataclass(frozen=True)
 class Event:
-    """账本里的一笔流水。
+    """事件日志里的一条事件。
 
-    frozen=True ⇒ 写进就不许改。这是账本可信的前提：
+    frozen=True ⇒ 写进就不许改。这是事件日志可信的前提：
     历史一旦能被涂改，"重算/审计/崩溃重放"就全都靠不住了。
     """
     seq: int                                   # 第几号，线性递增
@@ -57,12 +57,12 @@ class Intent:
 class WorkingState:
     """当前状态 = 一袋意图 + 每层一个活跃指针。
 
-    关键：这份东西不往磁盘单独存，每次都由账本（事件序列）叠出来。
-    磁盘上只有账本。这就是"状态/历史分离"，是 F1 的根。
+    关键：这份东西不往磁盘单独存，每次都由事件日志（事件序列）算出来。
+    磁盘上只有事件日志。这就是"状态/历史分离"，是 F1 的根。
     """
     intents: Dict[str, Intent] = field(default_factory=dict)
     active_by_level: Dict[str, str] = field(default_factory=dict)  # 层 -> 活跃意图 id
-    last_seq: int = 0                          # 已经叠到第几号事件
+    last_seq: int = 0                          # 已经应用到第几号事件
 
     @classmethod
     def empty(cls) -> "WorkingState":

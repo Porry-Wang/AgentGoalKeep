@@ -6,7 +6,7 @@
   Intent       —— 一个意图：id + 目标 + 层级 + 状态。
   WorkingState —— 当前状态：一袋意图 + 每层一个活跃指针。
                   它由账本叠出来，不单独存盘（状态/历史分离）。
-对应《设计说明》§1。
+对应《设计说明》第 1 节。
 """
 from __future__ import annotations
 
